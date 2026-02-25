@@ -6,8 +6,12 @@
 const express = require('express');
 const path = require('path');
 const jsonStore = require('./storage/jsonStore');
+const { startScheduler } = require('./scheduler');
 
 const app = express();
+
+// 启动定时任务
+startScheduler();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../views')));
 
