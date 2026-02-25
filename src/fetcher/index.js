@@ -2,14 +2,14 @@
  * 抓取模块 - 汇总各平台抓取
  */
 
-const fetchWechat = require('./fetcher/wechat');
-const fetchBaidu = require('./fetcher/baidu');
-const fetchToutiao = require('./fetcher/toutiao');
-const fetchSohu = require('./fetcher/sohu');
-const fetchDouyin = require('./fetcher/douyin');
-const fetchBilibili = require('./fetcher/bilibili');
+const fetchWechat = require('./wechat');
+const fetchBaidu = require('./baidu');
+const fetchToutiao = require('./toutiao');
+const fetchSohu = require('./sohu');
+const fetchDouyin = require('./douyin');
+const fetchBilibili = require('./bilibili');
 
-const keywords = require('../config/keywords.json');
+const keywords = require('../../config/keywords.json');
 
 // 获取所有关键词
 function getAllKeywords() {

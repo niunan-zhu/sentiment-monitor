@@ -87,7 +87,7 @@ app.get('/api/stats', async (req, res) => {
 // API: 手动触发抓取
 app.post('/api/fetch', async (req, res) => {
   try {
-    const fetcher = require('../src/fetcher');
+    const fetcher = require('./fetcher');
     const articles = await fetcher.fetchAll();
     await jsonStore.save(articles);
     res.json({ success: true, count: articles.length });

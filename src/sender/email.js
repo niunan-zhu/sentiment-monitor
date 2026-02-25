@@ -3,7 +3,7 @@
  */
 
 const nodemailer = require('nodemailer');
-const settings = require('../config/settings.json');
+const settings = require('../../config/settings.json');
 
 async function sendEmail(articles) {
   const transporter = nodemailer.createTransport({
