@@ -1,0 +1,19 @@
+{
+  "name": "sentiment-monitor",
+  "version": "1.0.0",
+  "description": "市场舆情监测系统 - 自动监控6大平台",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "fetch": "node src/fetch.js",
+    "schedule": "node src/scheduler/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "playwright": "^1.40.0",
+    "axios": "^1.6.0",
+    "nodemailer": "^6.9.8",
+    "node-schedule": "^2.1.1",
+    "dotenv": "^16.3.0"
+  }
+}

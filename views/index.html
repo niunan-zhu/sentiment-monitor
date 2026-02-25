@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📊 舆情监测 Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; }
+    
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 30px; }
+    .header h1 { font-size: 24px; }
+    .header .subtitle { opacity: 0.8; margin-top: 5px; }
+    
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; padding: 20px 30px; }
+    .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .stat-card h3 { color: #666; font-size: 14px; margin-bottom: 8px; }
+    .stat-card .value { font-size: 32px; font-weight: bold; color: #333; }
+    .stat-card.positive .value { color: #4caf50; }
+    .stat-card.negative .value { color: #f44336; }
+    .stat-card.neutral .value { color: #ff9800; }
+    
+    .toolbar { background: white; padding: 15px 30px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .search-input { flex: 1; min-width: 200px; padding: 10px 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+    .btn-primary { background: #667eea; color: white; }
+    .btn-primary:hover { background: #5568d3; }
+    .btn-outline { background: white; border: 1px solid #ddd; color: #666; }
+    .btn-outline:hover { background: #f5f5f5; }
+    .btn-outline.active { background: #667eea; color: white; border-color: #667eea; }
+    
+    .content { padding: 20px 30px; }
+    .article-list { display: flex; flex-direction: column; gap: 15px; }
+    
+    .article { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: transform 0.2s; }
+    .article:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    
+    .article-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .tag { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+    .tag.positive { background: #e8f5e9; color: #2e7d32; }
+    .tag.negative { background: #ffebee; color: #c62828; }
+    .tag.neutral { background: #fff3e0; color: #ef6c00; }
+    .tag.weixin { background: #07c160; color: white; }
+    .tag.baidu { background: #2932e1; color: white; }
+    .tag.bilibili { background: #00a1d6; color: white; }
+    .tag.douyin { background: #000; color: white; }
+    .tag.toutiao { background: #ff0000; color: white; }
+    .tag.sohu { background: #ff6600; color: white; }
+    
+    .article h3 { font-size: 18px; color: #333; margin-bottom: 8px; }
+    .article .meta { color: #999; font-size: 13px; margin-bottom: 10px; }
+    .article .summary { color: #666; line-height: 1.6; margin-bottom: 10px; }
+    .article .link { color: #667eea; text-decoration: none; }
+    .article .link:hover { text-decoration: underline; }
+    
+    .loading { text-align: center; padding: 40px; color: #999; }
+    .empty { text-align: center; padding: 60px; color: #999; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📊 舆情监测 Dashboard</h1>
+    <div class="subtitle">实时监控 6 大平台，一键直达原文</div>
+  </div>
+  
+  <div class="stats" id="stats">
+    <div class="stat-card">
+      <h3>今日总数</h3>
+      <div class="value" id="totalToday">-</div>
+    </div>
+    <div class="stat-card positive">
+      <h3>正面</h3>
+      <div class="value" id="positiveCount">-</div>
+    </div>
+    <div class="stat-card negative">
+      <h3>负面</h3>
+      <div class="value" id="negativeCount">-</div>
+    </div>
+    <div class="stat-card neutral">
+      <h3>中性</h3>
+      <div class="value" id="neutralCount">-</div>
+    </div>
+  </div>
+  
+  <div class="toolbar">
+    <input type="text" class="search-input" id="search" placeholder="搜索标题、内容...">
+    <button class="btn btn-primary" onclick="fetchArticles()">🔍 搜索</button>
+    <button class="btn btn-outline" onclick="filterPlatform('all')">全部</button>
+    <button class="btn btn-outline" onclick="filterPlatform('微信公众号')">微信</button>
+    <button class="btn btn-outline" onclick="filterPlatform('B站')">B站</button>
+    <button class="btn btn-outline" onclick="filterPlatform('抖音')">抖音</button>
+    <button class="btn btn-primary" onclick="triggerFetch()">⚡ 立即抓取</button>
+  </div>
+  
+  <div class="content">
+    <div class="article-list" id="articles">
+      <div class="loading">加载中...</div>
+    </div>
+  </div>
+  
+  <script>
+    let allArticles = [];
+    let currentFilter = 'all';
+    
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/stats');
+        const stats = await res.json();
+        
+        document.getElementById('totalToday').textContent = stats.today || 0;
+        document.getElementById('positiveCount').textContent = stats.bySentiment?.positive || 0;
+        document.getElementById('negativeCount').textContent = stats.bySentiment?.negative || 0;
+        document.getElementById('neutralCount').textContent = stats.bySentiment?.neutral || 0;
+      } catch (e) {
+        console.error('加载统计失败:', e);
+      }
+    }
+    
+    async function fetchArticles() {
+      const keyword = document.getElementById('search').value;
+      let url = '/api/articles';
+      if (keyword) url += `?keyword=${encodeURIComponent(keyword)}`;
+      
+      const res = await fetch(url);
+      allArticles = await res.json();
+      renderArticles();
+    }
+    
+    function filterPlatform(platform) {
+      currentFilter = platform;
+      renderArticles();
+    }
+    
+    function renderArticles() {
+      const container = document.getElementById('articles');
+      
+      let articles = allArticles;
+      if (currentFilter !== 'all') {
+        articles = articles.filter(a => a.platform === currentFilter);
+      }
+      
+      if (articles.length === 0) {
+        container.innerHTML = '<div class="empty">暂无数据</div>';
+        return;
+      }
+      
+      container.innerHTML = articles.map(article => `
+        <div class="article">
+          <div class="article-header">
+            <span class="tag ${getPlatformClass(article.platform)}">${article.platform}</span>
+            ${article.sentiment ? `<span class="tag ${article.sentiment}">${getSentimentText(article.sentiment)}</span>` : ''}
+          </div>
+          <h3>${article.title}</h3>
+          <div class="meta">
+            ${article.source || article.platform} · ${formatTime(article.pubTime)}
+          </div>
+          ${article.summary ? `<div class="summary">${article.summary}</div>` : ''}
+          <a class="link" href="${article.url}" target="_blank">🔗 查看原文</a>
+        </div>
+      `).join('');
+    }
+    
+    function getPlatformClass(platform) {
+      const map = {
+        '微信公众号': 'weixin',
+        '百家号': 'baidu',
+        'B站': 'bilibili',
+        '抖音': 'douyin',
+        '头条号': 'toutiao',
+        '搜狐号': 'sohu'
+      };
+      return map[platform] || '';
+    }
+    
+    function getSentimentText(sentiment) {
+      const map = { positive: '😊 正面', negative: '😟 负面', neutral: '😐 中性' };
+      return map[sentiment] || sentiment;
+    }
+    
+    function formatTime(time) {
+      if (!time) return '';
+      const date = new Date(time);
+      return date.toLocaleString('zh-CN');
+    }
+    
+    async function triggerFetch() {
+      if (!confirm('确定要立即抓取最新数据吗？')) return;
+      
+      const btn = event.target;
+      btn.textContent = '抓取中...';
+      btn.disabled = true;
+      
+      try {
+        const res = await fetch('/api/fetch', { method: 'POST' });
+        const result = await res.json();
+        alert(`抓取完成！新增 ${result.count} 条数据`);
+        await fetchArticles();
+        await loadStats();
+      } catch (e) {
+        alert('抓取失败: ' + e.message);
+      }
+      
+      btn.textContent = '⚡ 立即抓取';
+      btn.disabled = false;
+    }
+    
+    // 初始化
+    fetchArticles();
+    loadStats();
+    
+    // 搜索回车
+    document.getElementById('search').addEventListener('keypress', e => {
+      if (e.key === 'Enter') fetchArticles();
+    });
+  </script>
+</body>
+</html>

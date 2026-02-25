@@ -1,0 +1,19 @@
+{
+  "email": {
+    "host": "smtp.qq.com",
+    "port": 587,
+    "secure": false,
+    "auth": {
+      "user": "983070487@qq.com",
+      "pass": "your授权码"
+    },
+    "recipients": ["983070487@qq.com"]
+  },
+  "wechat": {
+    "webhookUrl": ""
+  },
+  "telegram": {
+    "botToken": "",
+    "chatId": ""
+  }
+}
